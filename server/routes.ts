@@ -158,6 +158,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audio Clips API
+  // Get all clips across all tracks (must be defined BEFORE the parametrized route)
+  app.get("/api/tracks/all/clips", async (req, res) => {
+    try {
+      // Get all tracks
+      const projects = await storage.getProjectsByUserId(1); // Default to user 1 for demo
+      if (!projects || projects.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get all tracks across all projects
+      const allTracks = await Promise.all(
+        projects.map(project => storage.getTracksByProjectId(project.id))
+      );
+      
+      // Flatten tracks array
+      const tracks = allTracks.flat();
+      if (tracks.length === 0) {
+        return res.json([]);
+      }
+      
+      // Get all clips for all tracks
+      const allClipsPromises = tracks.map(track => storage.getAudioClipsByTrackId(track.id));
+      const allClips = await Promise.all(allClipsPromises);
+      
+      // Flatten clips array and return
+      const clips = allClips.flat();
+      res.json(clips);
+    } catch (error) {
+      console.error("Error fetching all clips:", error);
+      res.status(500).json({ message: "Error fetching all clips" });
+    }
+  });
+  
+  // Get clips for a specific track
   app.get("/api/tracks/:trackId/clips", async (req, res) => {
     const trackId = parseInt(req.params.trackId);
     const clips = await storage.getAudioClipsByTrackId(trackId);
