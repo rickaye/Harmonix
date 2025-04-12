@@ -3,6 +3,7 @@ import WaveSurfer from "wavesurfer.js";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ZoomIn, ZoomOut, Volume2, VolumeX, Play, Pause, SkipForward, SkipBack } from "lucide-react";
+import { initializeAudioContext } from "@/lib/audio-context";
 
 interface WaveformDisplayProps {
   audioPath: string;
@@ -36,125 +37,163 @@ const WaveformDisplay = ({
 
   // Initialize WaveSurfer with advanced settings
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Clean up previous instance
-    if (wavesurferRef.current) {
-      wavesurferRef.current.destroy();
-    }
-
-    // Select waveform appearance based on visualMode
-    let waveColor, progressColor, barWidth, barGap, barRadius, cursorWidth;
-    let waveformOptions = {};
-
-    switch(visualMode) {
-      case 'spectrum':
-        waveColor = `linear-gradient(to bottom, ${color}, hsl(var(--accent)))`;
-        progressColor = `linear-gradient(to bottom, rgba(255,255,255,0.8), ${color})`;
-        barWidth = 3;
-        barGap = 1;
-        barRadius = 3;
-        cursorWidth = 2;
-        break;
-      case 'bars':
-        waveColor = color;
-        progressColor = "hsl(var(--secondary))";
-        barWidth = 4;
-        barGap = 2;
-        barRadius = 2;
-        cursorWidth = 0;
-        break;
-      case 'futuristic':
-        waveColor = `linear-gradient(to top, hsl(var(--primary)), hsl(var(--accent)))`;
-        progressColor = `linear-gradient(to top, hsl(var(--secondary)), hsl(var(--destructive)))`;
-        barWidth = 2;
-        barGap = 2;
-        barRadius = 4;
-        cursorWidth = 2;
-        waveformOptions = {
-          // Add special options for futuristic mode
-          barWidth: 2,
-          barGap: 2,
-          barRadius: 4
-        };
-        break;
-      default: // standard
-        waveColor = color;
-        progressColor = "rgba(255, 255, 255, 0.7)";
-        barWidth = 2;
-        barGap = 1;
-        barRadius = 2;
-        cursorWidth = 1;
-    }
-
-    // Create new WaveSurfer instance with advanced options
-    const wavesurfer = WaveSurfer.create({
-      container: containerRef.current,
-      waveColor: waveColor,
-      progressColor: progressColor,
-      cursorColor: "rgba(255, 255, 255, 0.7)",
-      cursorWidth: cursorWidth,
-      barWidth: barWidth,
-      barGap: barGap,
-      barRadius: barRadius,
-      height: height,
-      normalize: true,
-      responsive: true,
-      fillParent: true,
-      backend: "WebAudio",
-      hideScrollbar: false,
-      partialRender: true,
-      pixelRatio: window.devicePixelRatio || 1,
-      interact: true,
-      autoCenter: true,
-      ...waveformOptions
-    });
-
-    // Handle events
-    wavesurfer.on("ready", () => {
-      setIsLoaded(true);
-      wavesurfer.setVolume(volume);
-    });
-
-    wavesurfer.on("play", () => {
-      setIsPlaying(true);
-    });
-
-    wavesurfer.on("pause", () => {
-      setIsPlaying(false);
-    });
-
-    wavesurfer.on("error", (err) => {
-      console.error("WaveSurfer error:", err);
-      setError("Failed to load audio waveform");
+    let isMounted = true;
+    
+    // Initialize AudioContext and then set up WaveSurfer
+    const setupWaveSurfer = async () => {
+      if (!containerRef.current || !isMounted) return;
       
-      // Generate a placeholder waveform
-      generatePlaceholderWaveform(containerRef.current, color, visualMode);
-    });
+      try {
+        // Ensure AudioContext is initialized before creating WaveSurfer
+        await initializeAudioContext();
+        
+        // Clean up previous instance
+        if (wavesurferRef.current) {
+          wavesurferRef.current.destroy();
+        }
+      
+        // Select waveform appearance based on visualMode
+        let waveColor, progressColor, barWidth, barGap, barRadius, cursorWidth;
+        let waveformOptions = {};
 
-    // Load audio
-    try {
-      // For development, if the path doesn't exist, we'll generate a placeholder
-      // In production, real audio would be loaded
-      if (audioPath && audioPath.startsWith('/')) {
-        wavesurfer.load(audioPath);
-      } else {
-        // Generate placeholder for demo
-        generatePlaceholderWaveform(containerRef.current, color, visualMode);
-        setIsLoaded(true);
+        switch(visualMode) {
+          case 'spectrum':
+            waveColor = `linear-gradient(to bottom, ${color}, hsl(var(--accent)))`;
+            progressColor = `linear-gradient(to bottom, rgba(255,255,255,0.8), ${color})`;
+            barWidth = 3;
+            barGap = 1;
+            barRadius = 3;
+            cursorWidth = 2;
+            break;
+          case 'bars':
+            waveColor = color;
+            progressColor = "hsl(var(--secondary))";
+            barWidth = 4;
+            barGap = 2;
+            barRadius = 2;
+            cursorWidth = 0;
+            break;
+          case 'futuristic':
+            waveColor = `linear-gradient(to top, hsl(var(--primary)), hsl(var(--accent)))`;
+            progressColor = `linear-gradient(to top, hsl(var(--secondary)), hsl(var(--destructive)))`;
+            barWidth = 2;
+            barGap = 2;
+            barRadius = 4;
+            cursorWidth = 2;
+            waveformOptions = {
+              // Add special options for futuristic mode
+              barWidth: 2,
+              barGap: 2,
+              barRadius: 4
+            };
+            break;
+          default: // standard
+            waveColor = color;
+            progressColor = "rgba(255, 255, 255, 0.7)";
+            barWidth = 2;
+            barGap = 1;
+            barRadius = 2;
+            cursorWidth = 1;
+        }
+
+        // Create new WaveSurfer instance with advanced options
+        const wavesurfer = WaveSurfer.create({
+          container: containerRef.current,
+          waveColor: waveColor,
+          progressColor: progressColor,
+          cursorColor: "rgba(255, 255, 255, 0.7)",
+          cursorWidth: cursorWidth,
+          barWidth: barWidth,
+          barGap: barGap,
+          barRadius: barRadius,
+          height: height,
+          normalize: true,
+          // Use more compatible options
+          fillParent: true,
+          backend: "WebAudio",
+          hideScrollbar: false,
+          partialRender: true,
+          pixelRatio: window.devicePixelRatio || 1,
+          interact: true,
+          autoCenter: true,
+          ...waveformOptions
+        });
+
+        // Handle events
+        wavesurfer.on("ready", () => {
+          if (isMounted) {
+            setIsLoaded(true);
+            wavesurfer.setVolume(volume);
+          }
+        });
+
+        wavesurfer.on("play", () => {
+          if (isMounted) setIsPlaying(true);
+        });
+
+        wavesurfer.on("pause", () => {
+          if (isMounted) setIsPlaying(false);
+        });
+
+        wavesurfer.on("error", (err) => {
+          console.error("WaveSurfer error:", err);
+          if (isMounted) {
+            setError("Failed to load audio waveform");
+            
+            // Generate a placeholder waveform
+            if (containerRef.current) {
+              generatePlaceholderWaveform(containerRef.current, color, visualMode);
+            }
+          }
+        });
+
+        // Load audio
+        try {
+          // For development, if the path doesn't exist, we'll generate a placeholder
+          // In production, real audio would be loaded
+          if (audioPath && audioPath.startsWith('/')) {
+            wavesurfer.load(audioPath);
+          } else {
+            // Generate placeholder for demo
+            generatePlaceholderWaveform(containerRef.current, color, visualMode);
+            setIsLoaded(true);
+          }
+        } catch (err) {
+          console.error("Error loading audio:", err);
+          if (isMounted) {
+            setError("Failed to load audio");
+            
+            // Generate placeholder
+            if (containerRef.current) {
+              generatePlaceholderWaveform(containerRef.current, color, visualMode);
+            }
+          }
+        }
+
+        wavesurferRef.current = wavesurfer;
+        
+      } catch (err) {
+        console.error("Error initializing WaveSurfer:", err);
+        if (isMounted) {
+          setError("Failed to initialize audio system");
+          
+          // Generate a placeholder in case of initialization error
+          if (containerRef.current) {
+            generatePlaceholderWaveform(containerRef.current, color, visualMode);
+          }
+        }
       }
-    } catch (err) {
-      console.error("Error loading audio:", err);
-      setError("Failed to load audio");
-      
-      // Generate placeholder
-      generatePlaceholderWaveform(containerRef.current, color, visualMode);
-    }
-
-    wavesurferRef.current = wavesurfer;
-
+    };
+    
+    // Start the setup process
+    setupWaveSurfer();
+    
+    // Cleanup function
     return () => {
-      wavesurfer.destroy();
+      isMounted = false;
+      if (wavesurferRef.current) {
+        wavesurferRef.current.destroy();
+      }
     };
   }, [audioPath, color, height, visualMode]);
 
