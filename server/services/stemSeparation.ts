@@ -3,7 +3,7 @@ import path from 'path';
 import { promisify } from 'util';
 import { StemSeparationJob, InsertStemSeparationJob } from '@shared/schema';
 import { IStorage } from '../storage';
-import openaiService from './openai';
+import { openai } from './openai';
 
 // Convert callbacks to promises
 const writeFileAsync = promisify(fs.writeFile);
@@ -38,7 +38,20 @@ async function separateStems(originalFilePath: string): Promise<Record<string, s
     
     // Get audio analysis to determine what stems to extract
     const audioFileContent = "This is a placeholder file content for analysis";
-    const instructions = await openaiService.getStemSeparationInstructions(audioFileContent);
+    // Use OpenAI to analyze the audio content
+    const instructions = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { 
+          role: "system", 
+          content: "You are an audio analysis expert. Analyze the audio content and suggest how to separate it into stems." 
+        },
+        { 
+          role: "user", 
+          content: `Analyze this audio content and provide stem separation instructions: ${audioFileContent}` 
+        }
+      ]
+    });
     
     const uploadDir = await ensureUploadsDir("stems");
     const timestamp = Date.now();

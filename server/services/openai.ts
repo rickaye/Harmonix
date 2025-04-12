@@ -1,228 +1,143 @@
+/**
+ * OpenAI service
+ * 
+ * Provides access to OpenAI's models and APIs
+ */
+
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
-import { promisify } from "util";
 
-// The newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const OPENAI_MODEL = "gpt-4o";
-const OPENAI_IMAGE_MODEL = "dall-e-3";
-const OPENAI_AUDIO_MODEL = "whisper-1";
-
-// Create OpenAI client
+// Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Convert callbacks to promises
-const writeFileAsync = promisify(fs.writeFile);
-const mkdirAsync = promisify(fs.mkdir);
-const existsAsync = promisify(fs.exists);
+export { openai };
 
 /**
- * Ensures the uploads directory exists
+ * Generate a text response using OpenAI's GPT models
  */
-async function ensureUploadsDir(subdir: string = ""): Promise<string> {
-  const uploadDir = path.join(process.cwd(), "uploads", subdir);
-  
-  if (!(await existsAsync(uploadDir))) {
-    await mkdirAsync(uploadDir, { recursive: true });
-  }
-  
-  return uploadDir;
-}
-
-/**
- * Generate a text description for music based on a given prompt
- */
-export async function generateMusicDescription(prompt: string): Promise<string> {
+export async function generateText(prompt: string, maxTokens: number = 500): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        {
-          role: "system",
-          content: `You are a music expert that can translate user descriptions into detailed musical descriptions. 
-          Include information about genre, tempo, instruments, mood, structure, and any other relevant details.
-          Be specific and creative.`
-        },
-        {
-          role: "user",
-          content: `Create a detailed musical description for: "${prompt}"`
-        }
+        { role: "user", content: prompt }
       ],
-      max_tokens: 500,
-      temperature: 0.7,
+      max_tokens: maxTokens
     });
 
-    return response.choices[0].message.content || "Unable to generate music description";
+    return response.choices[0].message.content || "";
   } catch (error) {
-    console.error("Error generating music description:", error);
-    throw new Error(`Failed to generate music description: ${error.message}`);
+    console.error("Error generating text with OpenAI:", error);
+    throw new Error("Failed to generate text with OpenAI");
   }
 }
 
 /**
- * Analyze an audio file for voice characteristics
- * This will be used in the voice cloning process
+ * Generate structured data using OpenAI's GPT models
  */
-export async function analyzeVoiceSample(audioFilePath: string): Promise<any> {
+export async function generateJSON<T>(
+  prompt: string, 
+  systemPrompt: string = "You are a helpful assistant."
+): Promise<T> {
   try {
-    const fileStream = fs.createReadStream(audioFilePath);
-    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    return JSON.parse(content) as T;
+  } catch (error) {
+    console.error("Error generating JSON with OpenAI:", error);
+    throw new Error("Failed to generate JSON with OpenAI");
+  }
+}
+
+/**
+ * Transcribe audio using OpenAI's Whisper API
+ */
+export async function transcribeAudio(audioPath: string): Promise<string> {
+  try {
+    if (!fs.existsSync(audioPath)) {
+      throw new Error(`Audio file not found at path: ${audioPath}`);
+    }
+
     const transcription = await openai.audio.transcriptions.create({
-      file: fileStream,
-      model: OPENAI_AUDIO_MODEL,
+      file: fs.createReadStream(audioPath),
+      model: "whisper-1",
     });
 
-    // Get detailed voice characteristics
-    const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
-      messages: [
-        {
-          role: "system",
-          content: `You are a voice analysis expert. Analyze the following voice recording transcription and 
-          provide detailed characteristics about the voice such as pitch, tone, accent, speaking style, 
-          unique patterns, and any other notable features. Format your analysis as JSON.`
-        },
-        {
-          role: "user",
-          content: `Here's the transcription: "${transcription.text}"`
-        }
-      ],
-      response_format: { type: "json_object" },
-    });
-
-    return JSON.parse(response.choices[0].message.content);
+    return transcription.text;
   } catch (error) {
-    console.error("Error analyzing voice sample:", error);
-    throw new Error(`Failed to analyze voice sample: ${error.message}`);
+    console.error("Error transcribing audio with OpenAI:", error);
+    throw new Error("Failed to transcribe audio with OpenAI");
   }
 }
 
 /**
- * Generate a visualization for a music track
+ * Generate an image using DALL-E
  */
-export async function generateMusicVisualization(description: string): Promise<string> {
+export async function generateImage(
+  prompt: string,
+  size: "1024x1024" | "1792x1024" | "1024x1792" = "1024x1024",
+  quality: "standard" | "hd" = "standard"
+): Promise<string> {
   try {
-    // First, get a detailed description for the visualization
-    const promptResponse = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert in music visualization design. Create a vivid and detailed 
-          description of a visualization that would match the music described. Focus on colors, 
-          shapes, movements, and overall aesthetic. The description should be suitable for DALL-E to create an image.`
-        },
-        {
-          role: "user", 
-          content: `Create a visualization description for music described as: "${description}"`
-        }
-      ]
-    });
-    
-    const visualizationPrompt = promptResponse.choices[0].message.content;
-    
-    // Now generate the actual image
-    const imageResponse = await openai.images.generate({
-      model: OPENAI_IMAGE_MODEL,
-      prompt: visualizationPrompt,
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt,
       n: 1,
-      size: "1024x1024",
-      quality: "standard",
-      response_format: "b64_json"
+      size,
+      quality,
     });
-    
-    // Save the image to file
-    const uploadDir = await ensureUploadsDir("visualizations");
-    const filename = `visualization_${Date.now()}.png`;
-    const filePath = path.join(uploadDir, filename);
-    
-    // The image data is base64 encoded
-    const imageData = imageResponse.data[0].b64_json;
-    await writeFileAsync(filePath, Buffer.from(imageData, 'base64'));
-    
-    return `/uploads/visualizations/${filename}`;
+
+    return response.data[0].url || "";
   } catch (error) {
-    console.error("Error generating music visualization:", error);
-    throw new Error(`Failed to generate music visualization: ${error.message}`);
+    console.error("Error generating image with OpenAI:", error);
+    throw new Error("Failed to generate image with OpenAI");
   }
 }
 
 /**
- * Analyze audio characteristics from a file
+ * Process an image with GPT-4 Vision
  */
-export async function analyzeAudioFile(audioFilePath: string): Promise<any> {
-  try {
-    // This would be enhanced with actual audio processing libraries
-    // For now, we'll use OpenAI to do text-based analysis based on a transcription
-    
-    const fileStream = fs.createReadStream(audioFilePath);
-    
-    const transcription = await openai.audio.transcriptions.create({
-      file: fileStream,
-      model: OPENAI_AUDIO_MODEL,
-    });
-    
-    // Get detailed audio analysis
-    const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
-      messages: [
-        {
-          role: "system",
-          content: `You are an audio analysis expert. Assuming this is a music track, analyze the following 
-          transcription and provide detailed information about potential musical elements, instruments, tempo, 
-          mood, and structure. Format your analysis as JSON.`
-        },
-        {
-          role: "user",
-          content: `Based on this transcription, what can you tell me about the audio: "${transcription.text}"`
-        }
-      ],
-      response_format: { type: "json_object" },
-    });
-    
-    return JSON.parse(response.choices[0].message.content);
-  } catch (error) {
-    console.error("Error analyzing audio file:", error);
-    throw new Error(`Failed to analyze audio file: ${error.message}`);
-  }
-}
-
-/**
- * Generate stem separation instructions for an audio file
- */
-export async function getStemSeparationInstructions(description: string): Promise<any> {
+export async function analyzeImage(
+  base64Image: string,
+  prompt: string
+): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
-          role: "system",
-          content: `You are an audio engineering expert. Create detailed instructions for separating 
-          the stems of a music track based on its description. Include which elements to isolate, 
-          frequency ranges to focus on, and any special processing needed. Format the response as JSON 
-          with a 'stems' array containing objects with 'name', 'frequencies', and 'characteristics' properties.`
-        },
-        {
           role: "user",
-          content: `Generate stem separation instructions for this track: "${description}"`
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
+            }
+          ],
         }
       ],
-      response_format: { type: "json_object" },
     });
-    
-    return JSON.parse(response.choices[0].message.content);
+
+    return response.choices[0].message.content || "";
   } catch (error) {
-    console.error("Error generating stem separation instructions:", error);
-    throw new Error(`Failed to generate stem separation instructions: ${error.message}`);
+    console.error("Error analyzing image with OpenAI:", error);
+    throw new Error("Failed to analyze image with OpenAI");
   }
 }
-
-export default {
-  generateMusicDescription,
-  analyzeVoiceSample,
-  generateMusicVisualization,
-  analyzeAudioFile,
-  getStemSeparationInstructions,
-};

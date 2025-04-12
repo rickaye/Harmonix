@@ -3,7 +3,7 @@ import path from 'path';
 import { promisify } from 'util';
 import { VoiceCloningJob, InsertVoiceCloningJob } from '@shared/schema';
 import { IStorage } from '../storage';
-import openaiService from './openai';
+import { openai } from './openai';
 
 // Convert callbacks to promises
 const writeFileAsync = promisify(fs.writeFile);
@@ -35,8 +35,24 @@ async function cloneVoice(samplePath: string, text: string): Promise<string> {
     // For simplicity, we're just simulating the process
     // In a real implementation, this would use a voice cloning model
     
-    // Analyze voice sample
-    const voiceAnalysis = await openaiService.analyzeVoiceSample(absoluteFilePath);
+    // Analyze voice sample using OpenAI
+    const sample = fs.readFileSync(absoluteFilePath);
+    const sampleBase64 = sample.toString('base64');
+    
+    // This is a simplified simulation, in a real implementation we would use an actual voice analysis model
+    const voiceAnalysisResponse = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { 
+          role: "system", 
+          content: "You are a voice analysis expert. Analyze the voice sample and provide detailed characteristics." 
+        },
+        { 
+          role: "user", 
+          content: `Analyze this voice sample for cloning purposes. Describe the key voice characteristics.` 
+        }
+      ]
+    });
     
     // Create a directory for cloned voices
     const uploadDir = await ensureUploadsDir("voice-cloning");

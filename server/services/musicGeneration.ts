@@ -3,7 +3,7 @@ import path from 'path';
 import { promisify } from 'util';
 import { MusicGenerationJob, InsertMusicGenerationJob } from '@shared/schema';
 import { IStorage } from '../storage';
-import openaiService from './openai';
+import { openai } from './openai';
 
 // Convert callbacks to promises
 const writeFileAsync = promisify(fs.writeFile);
@@ -32,11 +32,22 @@ async function generateMusicFile(prompt: string): Promise<string> {
     // In a production system, we would call an actual music generation API
     // For now, we'll use a sample file and generate a visualization
     
-    // Get a detailed music description from the prompt
-    const musicDescription = await openaiService.generateMusicDescription(prompt);
+    // Get a detailed music description from the prompt using OpenAI
+    const musicDescriptionResponse = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { 
+          role: "system", 
+          content: "You are a music composer assistant. Create detailed descriptions for music generation." 
+        },
+        { 
+          role: "user", 
+          content: `Create a detailed description for this music prompt: ${prompt}` 
+        }
+      ]
+    });
     
-    // Generate a visualization for the music
-    const visualizationPath = await openaiService.generateMusicVisualization(musicDescription);
+    const musicDescription = musicDescriptionResponse.choices[0].message.content || prompt;
     
     // For demo purposes, we'll "generate" music by copying a sample file
     // In a real implementation, this would be where we'd call a music generation model

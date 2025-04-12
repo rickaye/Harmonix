@@ -14,6 +14,8 @@ import {
 import { handleStemSeparation } from "./services/stemSeparation";
 import { handleVoiceCloning } from "./services/voiceCloning";
 import { handleMusicGeneration } from "./services/musicGeneration";
+import { songGenerator } from "./services/songGenerator";
+import { voiceToSongService } from "./services/voiceToSong";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -411,6 +413,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(job);
     } catch (error) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Full Song Generation API
+  
+  // Generate a complete song with lyrics, music, and structure
+  app.post("/api/songs/generate", async (req, res) => {
+    try {
+      const { 
+        projectId, 
+        genre, 
+        description, 
+        lyricsTopic,
+        instruments,
+        mood,
+        tempo,
+        duration
+      } = req.body;
+      
+      if (!projectId || !genre || !description) {
+        return res.status(400).json({ 
+          message: "Required fields missing: projectId, genre, and description are required" 
+        });
+      }
+      
+      const song = await songGenerator.generateCompleteSong({
+        genre,
+        description,
+        lyricsTopic,
+        instruments,
+        mood,
+        tempo: tempo ? parseInt(tempo) : undefined,
+        duration: duration ? parseInt(duration) : undefined
+      });
+      
+      res.status(201).json(song);
+    } catch (error) {
+      console.error("Error generating song:", error);
+      res.status(500).json({ message: "Failed to generate song" });
+    }
+  });
+  
+  // Generate a billboard hit song in any genre
+  app.post("/api/songs/generate-hit", async (req, res) => {
+    try {
+      const { genre, topic, mood } = req.body;
+      
+      if (!genre || !topic) {
+        return res.status(400).json({ 
+          message: "Required fields missing: genre and topic are required" 
+        });
+      }
+      
+      const song = await songGenerator.generateBillboardHit(genre, topic, mood);
+      
+      res.status(201).json(song);
+    } catch (error) {
+      console.error("Error generating hit song:", error);
+      res.status(500).json({ message: "Failed to generate hit song" });
+    }
+  });
+  
+  // Generate a song with voice cloning
+  app.post("/api/songs/voice-to-song", upload.single('voiceSample'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Voice sample file is required" });
+      }
+      
+      const { 
+        projectId, 
+        genre, 
+        lyricsTopic,
+        mood,
+        instruments,
+        tempo,
+        duration
+      } = req.body;
+      
+      if (!projectId || !genre || !lyricsTopic) {
+        return res.status(400).json({ 
+          message: "Required fields missing: projectId, genre, and lyricsTopic are required" 
+        });
+      }
+      
+      const parsedInstruments = instruments ? JSON.parse(instruments) : undefined;
+      
+      const result = await voiceToSongService.generateSongWithClonedVoice({
+        projectId: parseInt(projectId),
+        voiceSamplePath: req.file.path,
+        genre,
+        lyricsTopic,
+        mood,
+        instruments: parsedInstruments,
+        tempo: tempo ? parseInt(tempo) : undefined,
+        duration: duration ? parseInt(duration) : undefined
+      });
+      
+      res.status(201).json(result);
+    } catch (error) {
+      console.error("Error generating song with voice:", error);
+      res.status(500).json({ message: "Failed to generate song with voice cloning" });
     }
   });
 
