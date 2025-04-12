@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, json, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, json, boolean, timestamp, primaryKey } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -87,9 +87,7 @@ export const audioClips = pgTable("audio_clips", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const audioClipsRelations = relations(audioClips, ({ one }) => ({
-  track: one(tracks, { fields: [audioClips.trackId], references: [tracks.id] }),
-}));
+// Will define the relation with mood tags later
 
 export const insertAudioClipSchema = createInsertSchema(audioClips).pick({
   name: true,
@@ -211,3 +209,55 @@ export type VoiceCloningJob = typeof voiceCloningJobs.$inferSelect;
 
 export type InsertMusicGenerationJob = z.infer<typeof insertMusicGenerationJobSchema>;
 export type MusicGenerationJob = typeof musicGenerationJobs.$inferSelect;
+
+// Mood tags model
+export const moodTags = pgTable("mood_tags", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  color: text("color").notNull(), // Color code in hex format
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const moodTagsRelations = relations(moodTags, ({ many }) => ({
+  audioClipMoodTags: many(audioClipMoodTags),
+}));
+
+export const insertMoodTagSchema = createInsertSchema(moodTags).pick({
+  name: true,
+  description: true,
+  color: true,
+});
+
+// Junction table for AudioClips and MoodTags (many-to-many)
+export const audioClipMoodTags = pgTable("audio_clip_mood_tags", {
+  audioClipId: integer("audio_clip_id").notNull().references(() => audioClips.id, { onDelete: "cascade" }),
+  moodTagId: integer("mood_tag_id").notNull().references(() => moodTags.id, { onDelete: "cascade" }),
+  weight: integer("weight").notNull().default(1), // How strongly this mood applies (1-10)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.audioClipId, t.moodTagId] }),
+}));
+
+export const audioClipMoodTagsRelations = relations(audioClipMoodTags, ({ one }) => ({
+  audioClip: one(audioClips, { fields: [audioClipMoodTags.audioClipId], references: [audioClips.id] }),
+  moodTag: one(moodTags, { fields: [audioClipMoodTags.moodTagId], references: [moodTags.id] }),
+}));
+
+export const insertAudioClipMoodTagSchema = createInsertSchema(audioClipMoodTags).pick({
+  audioClipId: true,
+  moodTagId: true,
+  weight: true,
+});
+
+export type InsertMoodTag = z.infer<typeof insertMoodTagSchema>;
+export type MoodTag = typeof moodTags.$inferSelect;
+
+export type InsertAudioClipMoodTag = z.infer<typeof insertAudioClipMoodTagSchema>;
+export type AudioClipMoodTag = typeof audioClipMoodTags.$inferSelect;
+
+// Now add relations for AudioClips to MoodTags
+export const audioClipsRelations = relations(audioClips, ({ one, many }) => ({
+  track: one(tracks, { fields: [audioClips.trackId], references: [tracks.id] }),
+  moodTags: many(audioClipMoodTags),
+}));

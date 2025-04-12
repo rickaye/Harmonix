@@ -6,7 +6,9 @@ import {
   Effect, InsertEffect, effects,
   StemSeparationJob, InsertStemSeparationJob, stemSeparationJobs,
   VoiceCloningJob, InsertVoiceCloningJob, voiceCloningJobs,
-  MusicGenerationJob, InsertMusicGenerationJob, musicGenerationJobs
+  MusicGenerationJob, InsertMusicGenerationJob, musicGenerationJobs,
+  MoodTag, InsertMoodTag, moodTags,
+  AudioClipMoodTag, InsertAudioClipMoodTag, audioClipMoodTags
 } from "@shared/schema";
 
 export interface IStorage {
@@ -60,6 +62,21 @@ export interface IStorage {
   getMusicGenerationJobsByProjectId(projectId: number): Promise<MusicGenerationJob[]>;
   createMusicGenerationJob(job: InsertMusicGenerationJob): Promise<MusicGenerationJob>;
   updateMusicGenerationJob(id: number, job: Partial<MusicGenerationJob>): Promise<MusicGenerationJob>;
+  
+  // Mood tag operations
+  getMoodTag(id: number): Promise<MoodTag | undefined>;
+  getMoodTagByName(name: string): Promise<MoodTag | undefined>;
+  getAllMoodTags(): Promise<MoodTag[]>;
+  createMoodTag(moodTag: InsertMoodTag): Promise<MoodTag>;
+  updateMoodTag(id: number, moodTag: Partial<MoodTag>): Promise<MoodTag>;
+  deleteMoodTag(id: number): Promise<boolean>;
+  
+  // AudioClip mood tag operations
+  getAudioClipMoodTags(audioClipId: number): Promise<(AudioClipMoodTag & { moodTag: MoodTag })[]>;
+  addMoodTagToAudioClip(audioClipMoodTag: InsertAudioClipMoodTag): Promise<AudioClipMoodTag>;
+  updateAudioClipMoodTagWeight(audioClipId: number, moodTagId: number, weight: number): Promise<AudioClipMoodTag>;
+  removeMoodTagFromAudioClip(audioClipId: number, moodTagId: number): Promise<boolean>;
+  getAudioClipsByMoodTagId(moodTagId: number): Promise<AudioClip[]>;
 }
 
 export class MemStorage implements IStorage {
