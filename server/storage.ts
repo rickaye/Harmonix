@@ -1,5 +1,3 @@
-import { db } from './db';
-import { eq, and } from 'drizzle-orm';
 import {
   User, InsertUser, users,
   Project, InsertProject, projects,
@@ -123,7 +121,11 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.nextIds.users++;
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      createdAt: new Date()
+    };
     this.users.set(id, user);
     return user;
   }
@@ -144,7 +146,8 @@ export class MemStorage implements IStorage {
     const project: Project = { 
       ...insertProject, 
       id, 
-      createdAt: new Date() 
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.projects.set(id, project);
     return project;
@@ -155,7 +158,11 @@ export class MemStorage implements IStorage {
     if (!project) {
       throw new Error(`Project with id ${id} not found`);
     }
-    const updatedProject = { ...project, ...projectUpdate };
+    const updatedProject = { 
+      ...project, 
+      ...projectUpdate,
+      updatedAt: new Date()
+    };
     this.projects.set(id, updatedProject);
     return updatedProject;
   }
@@ -177,7 +184,11 @@ export class MemStorage implements IStorage {
 
   async createTrack(insertTrack: InsertTrack): Promise<Track> {
     const id = this.nextIds.tracks++;
-    const track: Track = { ...insertTrack, id };
+    const track: Track = { 
+      ...insertTrack, 
+      id,
+      createdAt: new Date()
+    };
     this.tracks.set(id, track);
     return track;
   }
@@ -209,7 +220,11 @@ export class MemStorage implements IStorage {
 
   async createAudioClip(insertAudioClip: InsertAudioClip): Promise<AudioClip> {
     const id = this.nextIds.audioClips++;
-    const audioClip: AudioClip = { ...insertAudioClip, id };
+    const audioClip: AudioClip = { 
+      ...insertAudioClip, 
+      id,
+      createdAt: new Date()
+    };
     this.audioClips.set(id, audioClip);
     return audioClip;
   }
@@ -241,7 +256,11 @@ export class MemStorage implements IStorage {
 
   async createEffect(insertEffect: InsertEffect): Promise<Effect> {
     const id = this.nextIds.effects++;
-    const effect: Effect = { ...insertEffect, id };
+    const effect: Effect = { 
+      ...insertEffect, 
+      id,
+      createdAt: new Date()
+    };
     this.effects.set(id, effect);
     return effect;
   }
@@ -278,7 +297,9 @@ export class MemStorage implements IStorage {
       id, 
       status: "pending",
       outputPaths: null,
-      error: null
+      error: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.stemSeparationJobs.set(id, job);
     return job;
@@ -289,7 +310,11 @@ export class MemStorage implements IStorage {
     if (!job) {
       throw new Error(`StemSeparationJob with id ${id} not found`);
     }
-    const updatedJob = { ...job, ...jobUpdate };
+    const updatedJob = { 
+      ...job, 
+      ...jobUpdate,
+      updatedAt: new Date()
+    };
     this.stemSeparationJobs.set(id, updatedJob);
     return updatedJob;
   }
@@ -312,7 +337,9 @@ export class MemStorage implements IStorage {
       id, 
       status: "pending",
       outputPath: null,
-      error: null 
+      error: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.voiceCloningJobs.set(id, job);
     return job;
@@ -323,7 +350,11 @@ export class MemStorage implements IStorage {
     if (!job) {
       throw new Error(`VoiceCloningJob with id ${id} not found`);
     }
-    const updatedJob = { ...job, ...jobUpdate };
+    const updatedJob = { 
+      ...job, 
+      ...jobUpdate,
+      updatedAt: new Date() 
+    };
     this.voiceCloningJobs.set(id, updatedJob);
     return updatedJob;
   }
@@ -346,7 +377,9 @@ export class MemStorage implements IStorage {
       id, 
       status: "pending",
       outputPath: null,
-      error: null 
+      error: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.musicGenerationJobs.set(id, job);
     return job;
@@ -357,7 +390,11 @@ export class MemStorage implements IStorage {
     if (!job) {
       throw new Error(`MusicGenerationJob with id ${id} not found`);
     }
-    const updatedJob = { ...job, ...jobUpdate };
+    const updatedJob = { 
+      ...job, 
+      ...jobUpdate,
+      updatedAt: new Date()
+    };
     this.musicGenerationJobs.set(id, updatedJob);
     return updatedJob;
   }
@@ -368,7 +405,8 @@ export class MemStorage implements IStorage {
     const user: User = {
       id: this.nextIds.users++,
       username: 'demo',
-      password: 'password'
+      password: 'password',
+      createdAt: new Date()
     };
     this.users.set(user.id, user);
 
@@ -379,7 +417,8 @@ export class MemStorage implements IStorage {
       userId: user.id,
       bpm: 120,
       timeSignature: '4/4',
-      createdAt: new Date()
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.projects.set(project.id, project);
 
@@ -401,7 +440,8 @@ export class MemStorage implements IStorage {
         color: t.color,
         muted: false,
         solo: false,
-        volume: 75
+        volume: 75,
+        createdAt: new Date()
       };
       this.tracks.set(track.id, track);
       return track;
@@ -532,452 +572,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-import { db } from './db';
-import { eq, and } from 'drizzle-orm';
-
-export class DatabaseStorage implements IStorage {
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
-  }
-
-  // Project operations
-  async getProject(id: number): Promise<Project | undefined> {
-    const [project] = await db.select().from(projects).where(eq(projects.id, id));
-    return project;
-  }
-
-  async getProjectsByUserId(userId: number): Promise<Project[]> {
-    return await db.select().from(projects).where(eq(projects.userId, userId));
-  }
-
-  async createProject(insertProject: InsertProject): Promise<Project> {
-    const [project] = await db.insert(projects).values(insertProject).returning();
-    return project;
-  }
-
-  async updateProject(id: number, projectUpdate: Partial<Project>): Promise<Project> {
-    const [project] = await db
-      .update(projects)
-      .set({
-        ...projectUpdate,
-        updatedAt: new Date()
-      })
-      .where(eq(projects.id, id))
-      .returning();
-    
-    if (!project) {
-      throw new Error(`Project with id ${id} not found`);
-    }
-    
-    return project;
-  }
-
-  async deleteProject(id: number): Promise<boolean> {
-    const result = await db.delete(projects).where(eq(projects.id, id));
-    return result.rowCount > 0;
-  }
-
-  // Track operations
-  async getTrack(id: number): Promise<Track | undefined> {
-    const [track] = await db.select().from(tracks).where(eq(tracks.id, id));
-    return track;
-  }
-
-  async getTracksByProjectId(projectId: number): Promise<Track[]> {
-    return await db.select().from(tracks).where(eq(tracks.projectId, projectId));
-  }
-
-  async createTrack(insertTrack: InsertTrack): Promise<Track> {
-    const [track] = await db.insert(tracks).values(insertTrack).returning();
-    return track;
-  }
-
-  async updateTrack(id: number, trackUpdate: Partial<Track>): Promise<Track> {
-    const [track] = await db
-      .update(tracks)
-      .set(trackUpdate)
-      .where(eq(tracks.id, id))
-      .returning();
-    
-    if (!track) {
-      throw new Error(`Track with id ${id} not found`);
-    }
-    
-    return track;
-  }
-
-  async deleteTrack(id: number): Promise<boolean> {
-    const result = await db.delete(tracks).where(eq(tracks.id, id));
-    return result.rowCount > 0;
-  }
-
-  // AudioClip operations
-  async getAudioClip(id: number): Promise<AudioClip | undefined> {
-    const [clip] = await db.select().from(audioClips).where(eq(audioClips.id, id));
-    return clip;
-  }
-
-  async getAudioClipsByTrackId(trackId: number): Promise<AudioClip[]> {
-    return await db.select().from(audioClips).where(eq(audioClips.trackId, trackId));
-  }
-
-  async createAudioClip(insertAudioClip: InsertAudioClip): Promise<AudioClip> {
-    const [clip] = await db.insert(audioClips).values(insertAudioClip).returning();
-    return clip;
-  }
-
-  async updateAudioClip(id: number, audioClipUpdate: Partial<AudioClip>): Promise<AudioClip> {
-    const [clip] = await db
-      .update(audioClips)
-      .set(audioClipUpdate)
-      .where(eq(audioClips.id, id))
-      .returning();
-    
-    if (!clip) {
-      throw new Error(`AudioClip with id ${id} not found`);
-    }
-    
-    return clip;
-  }
-
-  async deleteAudioClip(id: number): Promise<boolean> {
-    const result = await db.delete(audioClips).where(eq(audioClips.id, id));
-    return result.rowCount > 0;
-  }
-
-  // Effect operations
-  async getEffect(id: number): Promise<Effect | undefined> {
-    const [effect] = await db.select().from(effects).where(eq(effects.id, id));
-    return effect;
-  }
-
-  async getEffectsByTrackId(trackId: number): Promise<Effect[]> {
-    return await db.select().from(effects).where(eq(effects.trackId, trackId));
-  }
-
-  async createEffect(insertEffect: InsertEffect): Promise<Effect> {
-    const [effect] = await db.insert(effects).values(insertEffect).returning();
-    return effect;
-  }
-
-  async updateEffect(id: number, effectUpdate: Partial<Effect>): Promise<Effect> {
-    const [effect] = await db
-      .update(effects)
-      .set(effectUpdate)
-      .where(eq(effects.id, id))
-      .returning();
-    
-    if (!effect) {
-      throw new Error(`Effect with id ${id} not found`);
-    }
-    
-    return effect;
-  }
-
-  async deleteEffect(id: number): Promise<boolean> {
-    const result = await db.delete(effects).where(eq(effects.id, id));
-    return result.rowCount > 0;
-  }
-
-  // Stem separation operations
-  async getStemSeparationJob(id: number): Promise<StemSeparationJob | undefined> {
-    const [job] = await db.select().from(stemSeparationJobs).where(eq(stemSeparationJobs.id, id));
-    return job;
-  }
-
-  async getStemSeparationJobsByProjectId(projectId: number): Promise<StemSeparationJob[]> {
-    return await db.select().from(stemSeparationJobs).where(eq(stemSeparationJobs.projectId, projectId));
-  }
-
-  async createStemSeparationJob(insertJob: InsertStemSeparationJob): Promise<StemSeparationJob> {
-    const [job] = await db
-      .insert(stemSeparationJobs)
-      .values({
-        ...insertJob,
-        status: "pending"
-      })
-      .returning();
-    return job;
-  }
-
-  async updateStemSeparationJob(id: number, jobUpdate: Partial<StemSeparationJob>): Promise<StemSeparationJob> {
-    const [job] = await db
-      .update(stemSeparationJobs)
-      .set({
-        ...jobUpdate,
-        updatedAt: new Date()
-      })
-      .where(eq(stemSeparationJobs.id, id))
-      .returning();
-    
-    if (!job) {
-      throw new Error(`StemSeparationJob with id ${id} not found`);
-    }
-    
-    return job;
-  }
-
-  // Voice cloning operations
-  async getVoiceCloningJob(id: number): Promise<VoiceCloningJob | undefined> {
-    const [job] = await db.select().from(voiceCloningJobs).where(eq(voiceCloningJobs.id, id));
-    return job;
-  }
-
-  async getVoiceCloningJobsByProjectId(projectId: number): Promise<VoiceCloningJob[]> {
-    return await db.select().from(voiceCloningJobs).where(eq(voiceCloningJobs.projectId, projectId));
-  }
-
-  async createVoiceCloningJob(insertJob: InsertVoiceCloningJob): Promise<VoiceCloningJob> {
-    const [job] = await db
-      .insert(voiceCloningJobs)
-      .values({
-        ...insertJob,
-        status: "pending"
-      })
-      .returning();
-    return job;
-  }
-
-  async updateVoiceCloningJob(id: number, jobUpdate: Partial<VoiceCloningJob>): Promise<VoiceCloningJob> {
-    const [job] = await db
-      .update(voiceCloningJobs)
-      .set({
-        ...jobUpdate,
-        updatedAt: new Date()
-      })
-      .where(eq(voiceCloningJobs.id, id))
-      .returning();
-    
-    if (!job) {
-      throw new Error(`VoiceCloningJob with id ${id} not found`);
-    }
-    
-    return job;
-  }
-
-  // Music generation operations
-  async getMusicGenerationJob(id: number): Promise<MusicGenerationJob | undefined> {
-    const [job] = await db.select().from(musicGenerationJobs).where(eq(musicGenerationJobs.id, id));
-    return job;
-  }
-
-  async getMusicGenerationJobsByProjectId(projectId: number): Promise<MusicGenerationJob[]> {
-    return await db.select().from(musicGenerationJobs).where(eq(musicGenerationJobs.projectId, projectId));
-  }
-
-  async createMusicGenerationJob(insertJob: InsertMusicGenerationJob): Promise<MusicGenerationJob> {
-    const [job] = await db
-      .insert(musicGenerationJobs)
-      .values({
-        ...insertJob,
-        status: "pending"
-      })
-      .returning();
-    return job;
-  }
-
-  async updateMusicGenerationJob(id: number, jobUpdate: Partial<MusicGenerationJob>): Promise<MusicGenerationJob> {
-    const [job] = await db
-      .update(musicGenerationJobs)
-      .set({
-        ...jobUpdate,
-        updatedAt: new Date()
-      })
-      .where(eq(musicGenerationJobs.id, id))
-      .returning();
-    
-    if (!job) {
-      throw new Error(`MusicGenerationJob with id ${id} not found`);
-    }
-    
-    return job;
-  }
-
-  // Setup initial data
-  async setupDemoData() {
-    // Check if users table is empty
-    const existingUsers = await db.select().from(users);
-    if (existingUsers.length > 0) {
-      return; // Data already exists, don't recreate
-    }
-
-    // Create a demo user
-    const [user] = await db.insert(users).values({
-      username: 'demo',
-      password: 'password'
-    }).returning();
-
-    // Create a demo project
-    const [project] = await db.insert(projects).values({
-      name: 'Demo Project',
-      userId: user.id,
-      bpm: 120,
-      timeSignature: '4/4'
-    }).returning();
-
-    // Create tracks
-    const trackTypes = [
-      { name: 'Vocals', type: 'vocals', color: '#4ade80' },
-      { name: 'Drums', type: 'drums', color: '#60a5fa' },
-      { name: 'Bass', type: 'bass', color: '#c084fc' },
-      { name: 'Synth', type: 'synth', color: '#fb923c' },
-      { name: 'AI Harmony', type: 'ai-generated', color: '#7C4DFF' }
-    ];
-
-    const createdTracks = [];
-    for (const t of trackTypes) {
-      const [track] = await db.insert(tracks).values({
-        name: t.name,
-        type: t.type,
-        projectId: project.id,
-        color: t.color,
-        muted: false,
-        solo: false,
-        volume: 75
-      }).returning();
-      
-      createdTracks.push(track);
-    }
-
-    // Create audio clips
-    const audioClipsData = [
-      {
-        name: 'vocals_main.wav',
-        trackId: createdTracks[0].id,
-        path: '/samples/vocals_main.wav',
-        startTime: 3600, // 180px * 20ms
-        duration: 6400, // 320px * 20ms
-        isAIGenerated: false
-      },
-      {
-        name: 'cloned_vocals.wav',
-        trackId: createdTracks[0].id,
-        path: '/samples/cloned_vocals.wav',
-        startTime: 10400, // 520px * 20ms
-        duration: 4800, // 240px * 20ms
-        isAIGenerated: true
-      },
-      {
-        name: 'drums_main.wav',
-        trackId: createdTracks[1].id,
-        path: '/samples/drums_main.wav',
-        startTime: 2000, // 100px * 20ms
-        duration: 13200, // 660px * 20ms
-        isAIGenerated: false
-      },
-      {
-        name: 'bass_main.wav',
-        trackId: createdTracks[2].id,
-        path: '/samples/bass_main.wav',
-        startTime: 2000, // 100px * 20ms
-        duration: 8800, // 440px * 20ms
-        isAIGenerated: false
-      },
-      {
-        name: 'synth_intro.wav',
-        trackId: createdTracks[3].id,
-        path: '/samples/synth_intro.wav',
-        startTime: 3600, // 180px * 20ms
-        duration: 3200, // 160px * 20ms
-        isAIGenerated: false
-      },
-      {
-        name: 'synth_verse.wav',
-        trackId: createdTracks[3].id,
-        path: '/samples/synth_verse.wav',
-        startTime: 7200, // 360px * 20ms
-        duration: 4800, // 240px * 20ms
-        isAIGenerated: false
-      },
-      {
-        name: 'synth_outro.wav',
-        trackId: createdTracks[3].id,
-        path: '/samples/synth_outro.wav',
-        startTime: 12400, // 620px * 20ms
-        duration: 3600, // 180px * 20ms
-        isAIGenerated: false
-      },
-      {
-        name: 'ai_generated_melody.wav',
-        trackId: createdTracks[4].id,
-        path: '/samples/ai_generated_melody.wav',
-        startTime: 7200, // 360px * 20ms
-        duration: 8800, // 440px * 20ms
-        isAIGenerated: true
-      }
-    ];
-
-    for (const clip of audioClipsData) {
-      await db.insert(audioClips).values(clip);
-    }
-
-    // Create effects
-    const effectsData = [
-      {
-        name: 'Equalizer',
-        type: 'eq',
-        trackId: createdTracks[0].id,
-        settings: {
-          bands: [
-            { frequency: 80, gain: 3 },
-            { frequency: 240, gain: -2 },
-            { frequency: 2500, gain: 5 },
-            { frequency: 10000, gain: 0 }
-          ]
-        },
-        enabled: true
-      },
-      {
-        name: 'Reverb',
-        type: 'reverb',
-        trackId: createdTracks[0].id,
-        settings: {
-          roomSize: 72,
-          dampening: 40,
-          width: 85,
-          wetDry: 30,
-          preset: 'Medium Hall'
-        },
-        enabled: true
-      },
-      {
-        name: 'Compressor',
-        type: 'compressor',
-        trackId: createdTracks[0].id,
-        settings: {
-          threshold: -24,
-          ratio: 4,
-          attack: 0.003,
-          release: 0.25,
-          knee: 30,
-          makeupGain: 1
-        },
-        enabled: true
-      }
-    ];
-
-    for (const effect of effectsData) {
-      await db.insert(effects).values(effect);
-    }
-  }
-}
-
-// Use the database storage for production
-export const storage = new DatabaseStorage();
-
-// Initialize demo data
-storage.setupDemoData()
-  .then(() => console.log('Demo data initialized'))
-  .catch(err => console.error('Error initializing demo data:', err));
+// Use the in-memory storage for now until we fix database connectivity issues
+export const storage = new MemStorage();
