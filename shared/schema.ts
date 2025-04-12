@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, json, boolean, timestamp } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,7 +8,12 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const usersRelations = relations(users, ({ many }) => ({
+  projects: many(projects),
+}));
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -18,11 +24,20 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   bpm: integer("bpm").notNull().default(120),
   timeSignature: text("time_signature").notNull().default("4/4"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  user: one(users, { fields: [projects.userId], references: [users.id] }),
+  tracks: many(tracks),
+  stemSeparationJobs: many(stemSeparationJobs),
+  voiceCloningJobs: many(voiceCloningJobs),
+  musicGenerationJobs: many(musicGenerationJobs),
+}));
 
 export const insertProjectSchema = createInsertSchema(projects).pick({
   name: true,
@@ -36,12 +51,19 @@ export const tracks = pgTable("tracks", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   type: text("type").notNull(), // vocals, drums, bass, other, ai-generated
-  projectId: integer("project_id").notNull(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   color: text("color").notNull(),
   muted: boolean("muted").notNull().default(false),
   solo: boolean("solo").notNull().default(false),
   volume: integer("volume").notNull().default(75), // 0-100
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const tracksRelations = relations(tracks, ({ one, many }) => ({
+  project: one(projects, { fields: [tracks.projectId], references: [projects.id] }),
+  audioClips: many(audioClips),
+  effects: many(effects),
+}));
 
 export const insertTrackSchema = createInsertSchema(tracks).pick({
   name: true,
@@ -57,12 +79,17 @@ export const insertTrackSchema = createInsertSchema(tracks).pick({
 export const audioClips = pgTable("audio_clips", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  trackId: integer("track_id").notNull(),
+  trackId: integer("track_id").notNull().references(() => tracks.id, { onDelete: "cascade" }),
   path: text("path").notNull(), // path to audio file
   startTime: integer("start_time").notNull(), // in milliseconds
   duration: integer("duration").notNull(), // in milliseconds
   isAIGenerated: boolean("is_ai_generated").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const audioClipsRelations = relations(audioClips, ({ one }) => ({
+  track: one(tracks, { fields: [audioClips.trackId], references: [tracks.id] }),
+}));
 
 export const insertAudioClipSchema = createInsertSchema(audioClips).pick({
   name: true,
@@ -78,10 +105,15 @@ export const effects = pgTable("effects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   type: text("type").notNull(), // eq, reverb, compressor, etc.
-  trackId: integer("track_id").notNull(),
+  trackId: integer("track_id").notNull().references(() => tracks.id, { onDelete: "cascade" }),
   settings: json("settings").notNull(), // JSON settings for this effect
   enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const effectsRelations = relations(effects, ({ one }) => ({
+  track: one(tracks, { fields: [effects.trackId], references: [tracks.id] }),
+}));
 
 export const insertEffectSchema = createInsertSchema(effects).pick({
   name: true,
@@ -97,9 +129,15 @@ export const stemSeparationJobs = pgTable("stem_separation_jobs", {
   originalPath: text("original_path").notNull(),
   status: text("status").notNull().default("pending"), // pending, processing, completed, failed
   error: text("error"),
-  projectId: integer("project_id").notNull(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   outputPaths: json("output_paths"), // JSON object with paths to separated stems
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const stemSeparationJobsRelations = relations(stemSeparationJobs, ({ one }) => ({
+  project: one(projects, { fields: [stemSeparationJobs.projectId], references: [projects.id] }),
+}));
 
 export const insertStemSeparationJobSchema = createInsertSchema(stemSeparationJobs).pick({
   originalPath: true,
@@ -113,9 +151,15 @@ export const voiceCloningJobs = pgTable("voice_cloning_jobs", {
   text: text("text").notNull(),
   status: text("status").notNull().default("pending"), // pending, processing, completed, failed
   error: text("error"),
-  projectId: integer("project_id").notNull(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   outputPath: text("output_path"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const voiceCloningJobsRelations = relations(voiceCloningJobs, ({ one }) => ({
+  project: one(projects, { fields: [voiceCloningJobs.projectId], references: [projects.id] }),
+}));
 
 export const insertVoiceCloningJobSchema = createInsertSchema(voiceCloningJobs).pick({
   samplePath: true,
@@ -129,9 +173,15 @@ export const musicGenerationJobs = pgTable("music_generation_jobs", {
   prompt: text("prompt").notNull(),
   status: text("status").notNull().default("pending"), // pending, processing, completed, failed
   error: text("error"),
-  projectId: integer("project_id").notNull(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   outputPath: text("output_path"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const musicGenerationJobsRelations = relations(musicGenerationJobs, ({ one }) => ({
+  project: one(projects, { fields: [musicGenerationJobs.projectId], references: [projects.id] }),
+}));
 
 export const insertMusicGenerationJobSchema = createInsertSchema(musicGenerationJobs).pick({
   prompt: true,
