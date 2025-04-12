@@ -4,50 +4,68 @@
 
 @layer base {
   :root {
-    --background: 222.2 0% 7%;
-    --foreground: 210 40% 98%;
+    /* Updated darker theme with cyberpunk/futuristic feel */
+    --background: 220 35% 5%;
+    --foreground: 210 50% 98%;
 
-    --card: 222.2 0% 11.8%;
-    --card-foreground: 210 40% 98%;
+    /* Darker card backgrounds */
+    --card: 220 35% 8%;
+    --card-foreground: 210 50% 98%;
 
-    --popover: 222.2 0% 11.8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 35% 8%;
+    --popover-foreground: 210 50% 98%;
 
-    --primary: 265 100% 65%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Updated primary to vibrant blue with higher saturation */  
+    --primary: 210 100% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 142.1 70.6% 45.3%;
-    --secondary-foreground: 210 40% 98%;
+    /* Updated secondary to neon purple/pink */
+    --secondary: 280 100% 65%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Darker muted color */
+    --muted: 217 35% 15%;
+    --muted-foreground: 215 25% 70%;
 
-    --accent: 20 100% 50%;
-    --accent-foreground: 210 40% 98%;
+    /* Updated accent to bright cyan for futuristic feel */
+    --accent: 180 100% 55%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    /* Bright destructive color */
+    --destructive: 0 100% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Darker subtle borders with glow effect in components */
+    --border: 217 35% 18%;
+    --input: 217 35% 18%;
+    --ring: 210 100% 60%;
 
-    --chart-1: 265 100% 65%;
-    --chart-2: 142.1 70.6% 45.3%;
-    --chart-3: 217.2 91.2% 59.8%;
-    --chart-4: 20 100% 50%;
-    --chart-5: 0 0% 98%;
+    /* Chart colors - vibrant and distinct */
+    --chart-1: 210 100% 60%; /* Blue */
+    --chart-2: 280 100% 65%; /* Purple */
+    --chart-3: 180 100% 55%; /* Cyan */
+    --chart-4: 330 100% 65%; /* Magenta */
+    --chart-5: 120 100% 60%; /* Green */
 
-    --sidebar-background: 222.2 0% 11.8%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 265 100% 65%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar with darker background and vibrant highlights */
+    --sidebar-background: 220 40% 6%;
+    --sidebar-foreground: 210 50% 98%;
+    --sidebar-primary: 210 100% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 35% 15%;
+    --sidebar-accent-foreground: 210 50% 98%;
+    --sidebar-border: 220 40% 10%;
+    --sidebar-ring: 210 100% 60%;
 
-    --radius: 0.5rem;
+    /* Slightly increased border radius for modern look */
+    --radius: 0.75rem;
+    
+    /* Track type colors */
+    --vocals-color: 330 100% 65%; /* Magenta */
+    --drums-color: 210 100% 60%; /* Blue */
+    --bass-color: 15 100% 60%;  /* Orange */
+    --synth-color: 280 100% 65%; /* Purple */
+    --ai-color: 120 100% 60%;   /* Green */
   }
 }
 
@@ -63,28 +81,33 @@
 
 /* Custom scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
   @apply bg-card;
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.5);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted rounded-sm;
+  @apply bg-primary rounded-sm;
+  box-shadow: 0 0 4px rgba(var(--primary), 0.4);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground;
+  @apply bg-accent;
+  box-shadow: 0 0 8px rgba(var(--accent), 0.6);
 }
 
 /* Timeline styling */
 .time-marker {
   position: absolute;
   font-size: 10px;
-  color: #888;
+  @apply text-muted-foreground;
   top: -16px;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
 }
 
 /* Audio Level Meter */
@@ -94,21 +117,160 @@
   height: 100%;
   width: 4px;
   margin-right: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.4) inset;
 }
 
 .level-indicator {
-  background: linear-gradient(to top, var(--secondary), #AEEA00, #FFD600, var(--accent), #DD2C00);
-  border-radius: 1px;
-  transition: height 0.1s ease;
+  background: linear-gradient(to top, 
+    hsl(var(--primary)), 
+    hsl(var(--secondary)), 
+    hsl(var(--accent)), 
+    hsl(var(--destructive)));
+  border-radius: 2px;
+  transition: height 0.05s ease;
+  box-shadow: 0 0 8px rgba(var(--primary), 0.3);
 }
 
 /* Audio waveform animation */
 @keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  0% { opacity: 0.7; }
+  50% { opacity: 1; box-shadow: 0 0 15px rgba(var(--accent), 0.3); }
+  100% { opacity: 0.7; }
 }
 
 .animate-pulse-slow {
-  animation: pulse 2s infinite;
+  animation: pulse 2.5s infinite;
+}
+
+/* Neon glows and cyberpunk effects */
+.neon-glow {
+  text-shadow: 0 0 5px rgba(var(--primary), 0.7),
+               0 0 10px rgba(var(--primary), 0.5),
+               0 0 20px rgba(var(--primary), 0.3);
+}
+
+.neon-border {
+  box-shadow: 0 0 5px rgba(var(--primary), 0.7),
+              0 0 10px rgba(var(--primary), 0.3);
+  border: 1px solid rgba(var(--primary), 0.5);
+}
+
+/* Futuristic button effect */
+.btn-cyber {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+  z-index: 1;
+  @apply bg-muted text-primary;
+}
+
+.btn-cyber:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+}
+
+.btn-cyber:before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  height: 100%;
+  background-color: hsl(var(--primary));
+  transition: all 0.3s;
+  z-index: -1;
+}
+
+.btn-cyber:hover {
+  color: white;
+}
+
+.btn-cyber:hover:before {
+  width: 100%;
+}
+
+/* Track styling */
+.track {
+  position: relative;
+  transition: all 0.2s ease;
+  border-radius: var(--radius);
+}
+
+.track:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.track-vocals {
+  border-left: 3px solid hsl(var(--vocals-color));
+}
+
+.track-drums {
+  border-left: 3px solid hsl(var(--drums-color));
+}
+
+.track-bass {
+  border-left: 3px solid hsl(var(--bass-color));
+}
+
+.track-synth {
+  border-left: 3px solid hsl(var(--synth-color));
+}
+
+.track-ai {
+  border-left: 3px solid hsl(var(--ai-color));
+}
+
+/* Waveform Visualization */
+.waveform-container {
+  position: relative;
+  width: 100%;
+  height: 60px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.audio-clip {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.audio-clip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(var(--primary), 0.3);
+}
+
+/* Glassmorphism effect for panels */
+.glass-panel {
+  backdrop-filter: blur(8px);
+  background: rgba(var(--card), 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Futuristic grid lines */
+.grid-bg {
+  background-size: 20px 20px;
+  background-image: 
+    linear-gradient(to right, rgba(var(--primary), 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(var(--primary), 0.05) 1px, transparent 1px);
+}
+
+/* AI badge */
+.ai-badge {
+  @apply bg-accent text-accent-foreground text-xs font-medium px-2 py-1 rounded;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 10;
 }
